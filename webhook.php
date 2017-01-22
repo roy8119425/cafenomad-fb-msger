@@ -2,6 +2,8 @@
 require_once('config.php');
 require_once('error.php');
 require_once('evt_handler.php');
+require_once('cafenomad_api.php');
+require_once('utils.php');
 
 //Set this Verify Token Value on your Facebook App
 if (isset($_REQUEST['hub_verify_token']) &&

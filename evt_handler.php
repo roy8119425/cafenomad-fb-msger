@@ -1,6 +1,4 @@
 <?php
-require_once('config.php');
-
 function callSendAPI($messageData) {
 	global $WEBHOOK_API_URL;
 
@@ -15,17 +13,73 @@ function callSendAPI($messageData) {
 	curl_close($ch);
 }
 
-function receivedMessage($event) {
-	$senderId = $event['sender']['id'];
+function sendCafeData($recipientId, $cafeData) {
+	$elements = Array();
 
+	foreach ($cafeData as $cafe) {
+		$lat = $cafe['latitude'];
+		$long = $cafe['longitude'];
+		$e = Array();
+
+		$e['title'] = $cafe['name'];
+		$e['subtitle'] = $cafe['address'];
+		$e['buttons'] = Array();
+
+		array_push($e['buttons'], Array(
+			'type' => 'web_url',
+			'title' => '開啟地圖',
+			'url' => 'http://www.google.com/maps/place/'.$lat.','.$long.'/@'.$lat.','.$long.',17z')
+		);
+
+		if (!empty($cafe['url'])) {
+			array_push($e['buttons'], Array(
+				'type' => 'web_url',
+				'title' => '前往粉絲團',
+				'url' => $cafe['url'])
+			);
+		}
+
+		array_push($elements, $e);
+	}
+
+	trigger_error(json_encode($elements));
 	callSendAPI('{
 		"recipient": {
-			"id": "' . $senderId . '"
+			"id": "' . $recipientId . '"
 		},
 		"message": {
-			"text": "yooo"
+			"attachment": {
+				"type": "template",
+				"payload": {
+					"template_type":"generic",
+					"elements": ' . json_encode($elements) . '
+				}
+			}
 		}
 	}');
+}
+
+function receivedMessage($event) {
+	$senderId = $event['sender']['id'];
+	$message = $event['message'];
+
+	if (isset($message['quick_reply'])) {
+		$quickReply = $message['quick_reply'];
+	} else if (isset($message['attachments'])) {
+		foreach ($message['attachments'] as $attachment) {
+			if ('location' === $attachment['type']) {
+				$payload = $attachment['payload'];
+				$lat = $payload['coordinates']['lat'];
+				$long = $payload['coordinates']['long'];
+
+				$nearestCafe = findNearestCafe($lat, $long, getFilter($senderId));
+				sendCafeData($senderId, $nearestCafe);
+			}
+		}
+	} else {
+		// Normal text
+		$text = $message['text'];
+	}
 }
 
 function receivedAuthentication($event) {
