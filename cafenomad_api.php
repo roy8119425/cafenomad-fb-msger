@@ -15,7 +15,7 @@ function findNearestCafe($lat, $long, $filter) {
 	$filteredData = Array();
 
 	foreach ($cafeData as &$cafe) {
-		$cafe['distance'] = distance($lat, $long, $cafe['latitude'], $cafe['longitude']);
+		$cafe['distance'] = getRealDistance($lat, $long, $cafe['latitude'], $cafe['longitude']);
 
 		// Do filter
 		if (isset($filter['distance']) && $filter['distance'] < $cafe['distance']) {
@@ -29,6 +29,8 @@ function findNearestCafe($lat, $long, $filter) {
 		return $a['distance'] - $b['distance'];
 	});
 
-	return array_slice($filteredData, 0, 5);
+	$filteredData = array_slice($filteredData, 0, 5);
+	getGoogleDistance($lat, $long, $filteredData);
+	return $filteredData;
 }
 ?>

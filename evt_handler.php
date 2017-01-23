@@ -14,6 +14,8 @@ function callSendAPI($messageData) {
 }
 
 function sendCafeData($recipientId, $cafeData) {
+	global $GOOGLE_PLACE, $CAFENOMAD_SHOP_INFO;
+
 	$elements = Array();
 
 	foreach ($cafeData as $cafe) {
@@ -21,28 +23,31 @@ function sendCafeData($recipientId, $cafeData) {
 		$long = $cafe['longitude'];
 		$e = Array();
 
-		$e['title'] = $cafe['name'];
-		$e['subtitle'] = $cafe['address'];
+		$e['title'] = getTitleText($cafe);
+		$e['subtitle'] = getSubtitleText($cafe);
 		$e['buttons'] = Array();
 
 		array_push($e['buttons'], Array(
 			'type' => 'web_url',
 			'title' => '開啟地圖',
-			'url' => 'http://www.google.com/maps/place/'.$lat.','.$long.'/@'.$lat.','.$long.',17z')
-		);
-
+			'url' => sprintf($GOOGLE_PLACE, $lat, $long, $lat, $long)
+		));
+		array_push($e['buttons'], Array(
+			'type' => 'web_url',
+			'title' => '詳細資訊',
+			'url' => sprintf($CAFENOMAD_SHOP_INFO, $cafe['id'])
+		));
 		if (!empty($cafe['url'])) {
 			array_push($e['buttons'], Array(
 				'type' => 'web_url',
 				'title' => '前往粉絲團',
-				'url' => $cafe['url'])
-			);
+				'url' => $cafe['url']
+			));
 		}
 
 		array_push($elements, $e);
 	}
 
-	trigger_error(json_encode($elements));
 	callSendAPI('{
 		"recipient": {
 			"id": "' . $recipientId . '"
