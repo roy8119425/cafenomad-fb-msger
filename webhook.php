@@ -24,17 +24,17 @@ if ('page' === $data['object']) {
 
 		// Iterate over each messaging event
 		foreach ($entry['messaging'] as $event) {
-			if ($event['message']) {
+			if (isset($event['message'])) {
 				receivedMessage($event);
-			} else if ($event['optin']) {
+			} else if (isset($event['optin'])) {
 				receivedAuthentication($event);
-			} else if ($event['delivery']) {
+			} else if (isset($event['delivery'])) {
 				receivedDeliveryConfirmation($event);
-			} else if ($event['postback']) {
+			} else if (isset($event['postback'])) {
 				receivedPostback($event);
-			} else if ($event['read']) {
+			} else if (isset($event['read'])) {
 				receivedMessageRead($event);
-			} else if ($event['account_linking']) {
+			} else if (isset($event['account_linking'])) {
 				receivedAccountLink($event);
 			} else {
 				trigger_error('Unknown event: '.json_encode($event));

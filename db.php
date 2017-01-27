@@ -17,9 +17,10 @@ function getPref($fbMsgId) {
 	$conn = init() or die();
 	$pref = Array();
 
-	$addDefCmd = 'INSERT INTO Preference (fb_msg_id, distance) VALUES (\''.$fbMsgId.'\', 5000)';
+	$checkExistCmd = 'SELECT * FROM Preference WHERE fb_msg_id = \'' . $fbMsgId . '\'';
+	$addDefCmd = 'INSERT INTO Preference (fb_msg_id, distance) VALUES (\'' . $fbMsgId . '\', 5000)';
 
-	$result = mysqli_query($conn, 'SELECT * FROM Preference') or trigger_error(mysqli_error($conn));
+	$result = mysqli_query($conn, $checkExistCmd) or trigger_error(mysqli_error($conn));
 
 	if ($result && 1 === mysqli_num_rows($result)) {
 		$pref = mysqli_fetch_assoc($result);
@@ -31,5 +32,14 @@ function getPref($fbMsgId) {
 
 	mysqli_close($conn);
 	return $pref;
+}
+
+function setPref($fbMsgId, $pref, $value) {
+	$conn = init() or die();
+	$sqlcmd = 'UPDATE Preference SET ' . $pref . ' = ' . $value . ' WHERE fb_msg_id = \'' . $fbMsgId . '\'';
+
+	mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
+
+	mysqli_close($conn);
 }
 ?>

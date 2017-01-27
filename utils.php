@@ -64,4 +64,14 @@ function getSubtitleText($cafe) {
 ' . '安靜程度 ' . number_format($cafe['quiet'], 1) . ' ★ 咖啡好喝 ' . number_format($cafe['tasty'], 1) . ' ★
 ' . '價格便宜 ' . number_format($cafe['cheap'], 1) . ' ★ 裝潢音樂 ' . number_format($cafe['music'], 1) . ' ★';
 }
+
+function fetchCmd($text) {
+	if (0 === strcasecmp($text, 'cafe')) {
+		return 'cafe';
+	}
+	if (0 === strcasecmp($text, 'help')) {
+		return 'help';
+	}
+	return NULL;
+}
 ?>
