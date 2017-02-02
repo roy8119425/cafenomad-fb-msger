@@ -13,6 +13,11 @@ function getRealDistance($lat1, $long1, $lat2, $long2) {
 function getGoogleDistance($lat, $long, &$cafeData) {
 	global $GOOGLE_DISTANCE;
 
+	if (0 === count($cafeData)) {
+		trigger_error('cafeData is empty');
+		return;
+	}
+
 	$destStr = '';
 	for ($i = 0; $i < count($cafeData); $i++) {
 		$cafe = $cafeData[$i];
@@ -25,7 +30,10 @@ function getGoogleDistance($lat, $long, &$cafeData) {
 	curl_close($ch);
 
 	if ('OK' !== $result['status']) {
-		trigger_error('Error: ' . $result['status'] . ', Msg: ' . $result['error_message']);
+		trigger_error('Error code: ' . $result['status']);
+		if (isset($result['error_message'])) {
+			trigger_error('Error msg: ' . $result['error_message']);
+		}
 		return;
 	}
 
@@ -60,9 +68,9 @@ function getTitleText($cafe) {
 
 function getSubtitleText($cafe) {
 	return
-	'無線網路 ' . number_format($cafe['wifi'], 1) . ' ★ 通常有位 ' . number_format($cafe['seat'], 1) . ' ★ 
-' . '安靜程度 ' . number_format($cafe['quiet'], 1) . ' ★ 咖啡好喝 ' . number_format($cafe['tasty'], 1) . ' ★
-' . '價格便宜 ' . number_format($cafe['cheap'], 1) . ' ★ 裝潢音樂 ' . number_format($cafe['music'], 1) . ' ★';
+	'網路 ' . number_format($cafe['wifi'], 1) . '🌟  空位 ' . number_format($cafe['seat'], 1) . '🌟
+' . '寧靜 ' . number_format($cafe['quiet'], 1) . '🌟  好喝 ' . number_format($cafe['tasty'], 1) . '🌟
+' . '便宜 ' . number_format($cafe['cheap'], 1) . '🌟  氣氛 ' . number_format($cafe['music'], 1) . '🌟';
 }
 
 function fetchCmd($text) {

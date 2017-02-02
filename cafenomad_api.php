@@ -43,12 +43,15 @@ function findNearestCafe($lat, $long, $filter) {
 		array_push($filteredData, $cafe);
 	}
 
-	usort($filteredData, function($a, $b) {
-		return $a['distance'] - $b['distance'];
-	});
+	if (0 < count($filteredData)) {
+		usort($filteredData, function($a, $b) {
+			return $a['distance'] - $b['distance'];
+		});
 
-	$filteredData = array_slice($filteredData, 0, 5);
-	getGoogleDistance($lat, $long, $filteredData);
+		$filteredData = array_slice($filteredData, 0, 5);
+		getGoogleDistance($lat, $long, $filteredData);
+	}
+
 	return $filteredData;
 }
 ?>

@@ -71,13 +71,8 @@ function sendHelp($recipientId) {
 	$buttons = Array(
 		Array(
 			'type' => 'postback',
-			'title' => '顯示嚴選條件',
+			'title' => '偏好設定',
 			'payload' => 'show_pref'
-		),
-		Array(
-			'type' => 'postback',
-			'title' => '修改嚴選條件',
-			'payload' => 'modify_pref'
 		),
 		Array(
 			'type' => 'postback',
@@ -91,28 +86,28 @@ function sendHelp($recipientId) {
 
 function sendModifyPref($recipientId, $pref) {
 	$prefText = Array(
-		'wifi' => '無線網路',
-		'seat' => '通常有位',
-		'quiet' => '安靜程度',
-		'tasty' => '咖啡好喝',
-		'cheap' => '價格便宜',
-		'music' => '裝潢音樂'
+		'wifi' => '網路',
+		'seat' => '空位',
+		'quiet' => '寧靜',
+		'tasty' => '好喝',
+		'cheap' => '便宜',
+		'music' => '氣氛'
 	);
 
 	sendQuickReply($recipientId, '請選擇您希望的「' . $prefText[$pref] . '」最低標準', Array(
 		Array(
 			'content_type' => 'text',
-			'title' => '3★ ',
+			'title' => '3🌟 ',
 			'payload' => $pref . '_3'
 		),
 		Array(
 			'content_type' => 'text',
-			'title' => '4★ ',
+			'title' => '4🌟 ',
 			'payload' => $pref . '_4'
 		),
 		Array(
 			'content_type' => 'text',
-			'title' => '5★ ',
+			'title' => '5🌟 ',
 			'payload' => $pref . '_5'
 		),
 		Array(
@@ -182,6 +177,33 @@ function sendCafeData($recipientId, $cafeData) {
 	}');
 }
 
+function sendPref($recipientId) {
+	$pref = getPref($recipientId);
+	$msg = '您目前的偏好設定：\n';
+
+	$msg .= ('網路：' . (0 < $pref['wifi'] ? $pref['wifi'] . '🌟 ' : '不在意') . '\n');
+	$msg .= ('空位：' . (0 < $pref['seat'] ? $pref['seat'] . '🌟 ' : '不在意') . '\n');
+	$msg .= ('寧靜：' . (0 < $pref['quiet'] ? $pref['quiet'] . '🌟 ' : '不在意') . '\n');
+	$msg .= ('好喝：' . (0 < $pref['tasty'] ? $pref['tasty'] . '🌟 ' : '不在意') . '\n');
+	$msg .= ('便宜：' . (0 < $pref['cheap'] ? $pref['cheap'] . '🌟 ' : '不在意') . '\n');
+	$msg .= ('氣氛：' . (0 < $pref['music'] ? $pref['music'] . '🌟 ' : '不在意') . '\n');
+
+	$buttons = Array(
+		Array(
+			'type' => 'postback',
+			'title' => '我想修改',
+			'payload' => 'modify_pref'
+		),
+		Array(
+			'type' => 'postback',
+			'title' => '全部清除',
+			'payload' => 'clear_pref'
+		)
+	);
+
+	sendButtons($recipientId, $msg, $buttons);
+}
+
 function receivedMessage($event) {
 	$senderId = $event['sender']['id'];
 	$message = $event['message'];
@@ -202,7 +224,11 @@ function receivedMessage($event) {
 				sendAction($senderId, 'typing_on');
 
 				$nearestCafe = findNearestCafe($lat, $long, getFilter($senderId));
-				sendCafeData($senderId, $nearestCafe);
+				if (0 < count($nearestCafe)) {
+					sendCafeData($senderId, $nearestCafe);
+				} else {
+					sendTextMessage($senderId, '很抱歉，在您附近搜尋不到任何咖啡廳');
+				}
 			}
 		}
 	} else {
@@ -230,15 +256,15 @@ function receivedPostback($event) {
 
 	switch ($payload) {
 		case 'get_started':
-			sendQuickReply($senderId, '感謝您的使用，請問您想自訂嚴選條件嗎？', Array(
+			sendQuickReply($senderId, '感謝您的使用，請問您想開始設定個人偏好嗎？', Array(
 				Array(
 					'content_type' => 'text',
-					'title' => '開始設定',
+					'title' => '立即開始',
 					'payload' => 'set_pref_now'
 				),
 				Array(
 					'content_type' => 'text',
-					'title' => '稍後再設定',
+					'title' => '稍後再說',
 					'payload' => 'set_pref_later'
 				)
 			));
@@ -247,20 +273,14 @@ function receivedPostback($event) {
 			sendLocationHint($senderId, '請點擊下方按鈕，或傳送位置資訊給我們');
 			break;
 		case 'show_pref':
-			$pref = getPref($senderId);
-			$msg = '您目前的嚴選條件為：\n';
-
-			$msg .= ('無線網路：' . (0 < $pref['wifi'] ? $pref['wifi'] . '★' : '不限制') . '\n');
-			$msg .= ('通常有位：' . (0 < $pref['seat'] ? $pref['seat'] . '★' : '不限制') . '\n');
-			$msg .= ('安靜程度：' . (0 < $pref['quiet'] ? $pref['quiet'] . '★' : '不限制') . '\n');
-			$msg .= ('咖啡好喝：' . (0 < $pref['tasty'] ? $pref['tasty'] . '★' : '不限制') . '\n');
-			$msg .= ('價格便宜：' . (0 < $pref['cheap'] ? $pref['cheap'] . '★' : '不限制') . '\n');
-			$msg .= ('裝潢音樂：' . (0 < $pref['music'] ? $pref['music'] . '★' : '不限制') . '\n');
-
-			sendTextMessage($senderId, $msg);
+			sendPref($senderId);
 			break;
 		case 'modify_pref':
 			sendModifyPref($senderId, 'wifi');
+			break;
+		case 'clear_pref':
+			clearPref($senderId);
+			sendPref($senderId);
 			break;
 		case 'other_help':
 			sendTextMessage($senderId, '請直接在此留言告訴我們您需要什麼協助，我們會盡快回覆您');
