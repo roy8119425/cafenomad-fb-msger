@@ -55,4 +55,53 @@ function clearPref($fbMsgId) {
 
 	mysqli_close($conn);
 }
+
+function findNearestCafe($lat, $long, $filter) {
+	$conn = init() or die();
+	$sqlcmd = 'SELECT * FROM Store';
+	$result = mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
+	mysqli_close($conn);
+
+	$filteredData = Array();
+
+	while ($cafe = mysqli_fetch_assoc($result)) {
+		$cafe['distance'] = getRealDistance($lat, $long, $cafe['lat'], $cafe['long']);
+
+		// Do filter
+		if (isset($filter['distance']) && $filter['distance'] < $cafe['distance']) {
+			continue;
+		}
+		if (isset($filter['wifi']) && $filter['wifi'] > $cafe['wifi']) {
+			continue;
+		}
+		if (isset($filter['seat']) && $filter['seat'] > $cafe['seat']) {
+			continue;
+		}
+		if (isset($filter['quiet']) && $filter['quiet'] > $cafe['quiet']) {
+			continue;
+		}
+		if (isset($filter['tasty']) && $filter['tasty'] > $cafe['tasty']) {
+			continue;
+		}
+		if (isset($filter['cheap']) && $filter['cheap'] > $cafe['cheap']) {
+			continue;
+		}
+		if (isset($filter['music']) && $filter['music'] > $cafe['music']) {
+			continue;
+		}
+
+		array_push($filteredData, $cafe);
+	}
+
+	if (0 < count($filteredData)) {
+		usort($filteredData, function($a, $b) {
+			return $a['distance'] - $b['distance'];
+		});
+
+		$filteredData = array_slice($filteredData, 0, 5);
+		getGoogleDistance($lat, $long, $filteredData);
+	}
+
+	return $filteredData;
+}
 ?>

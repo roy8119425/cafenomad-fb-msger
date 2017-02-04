@@ -127,18 +127,19 @@ function sendLocationHint($recipientId, $text) {
 }
 
 function sendCafeData($recipientId, $cafeData) {
-	global $GOOGLE_PLACE, $CAFENOMAD_SHOP_INFO;
+	global $FB_PAGE_URL, $GOOGLE_PLACE;
 
 	$elements = Array();
 
 	foreach ($cafeData as $cafe) {
-		$lat = $cafe['latitude'];
-		$long = $cafe['longitude'];
+		$lat = $cafe['lat'];
+		$long = $cafe['long'];
 		$e = Array();
 
 		$e['title'] = getTitleText($cafe);
 		$e['subtitle'] = getSubtitleText($cafe);
-		$e['item_url'] = $cafe['url'];
+		$e['item_url'] = sprintf($FB_PAGE_URL, $cafe['fb_id']);
+		$e['image_url'] = $cafe['picture'];
 		$e['buttons'] = Array();
 
 		array_push($e['buttons'], Array(
@@ -147,17 +148,15 @@ function sendCafeData($recipientId, $cafeData) {
 			'url' => sprintf($GOOGLE_PLACE, $lat, $long, $lat, $long)
 		));
 		array_push($e['buttons'], Array(
-			'type' => 'web_url',
+			'type' => 'postback',
 			'title' => '詳細資訊',
-			'url' => sprintf($CAFENOMAD_SHOP_INFO, $cafe['id'])
+			'payload' => 'detail#' . $cafe['fb_id'] . '#' . $cafe['cafenomad_id']
 		));
-		if (!empty($cafe['url'])) {
-			array_push($e['buttons'], Array(
-				'type' => 'web_url',
-				'title' => '前往粉絲團',
-				'url' => $cafe['url']
-			));
-		}
+		array_push($e['buttons'], Array(
+			'type' => 'postback',
+			'title' => '看評價/給評價',
+			'payload' => 'rating#' . $cafe['fb_id'] . '#' . $cafe['cafenomad_id']
+		));
 
 		array_push($elements, $e);
 	}
@@ -199,6 +198,50 @@ function sendPref($recipientId) {
 			'type' => 'postback',
 			'title' => '全部清除',
 			'payload' => 'clear_pref'
+		)
+	);
+
+	sendButtons($recipientId, $msg, $buttons);
+}
+
+function sendDetail($recipientId, $payload) {
+	global $FB_ABOUT_URL, $CAFENOMAD_SHOP_INFO;
+
+	$msg = '您想從哪個網站看詳細資訊呢？';
+	list($skip, $pageId, $cafenomadId) = explode('#', $payload);
+
+	$buttons = Array(
+		Array(
+			'type' => 'web_url',
+			'title' => '從粉絲團',
+			'url' => sprintf($FB_ABOUT_URL, $pageId)
+		),
+		Array(
+			'type' => 'web_url',
+			'title' => '從 Cafenomad.tw',
+			'url' => sprintf($CAFENOMAD_SHOP_INFO, $cafenomadId)
+		)
+	);
+
+	sendButtons($recipientId, $msg, $buttons);
+}
+
+function sendRating($recipientId, $payload) {
+	global $FB_REVIEW_URL, $CAFENOMAD_REVIEW_URL;
+
+	$msg = '您想從哪個網站看/給評論呢？';
+	list($skip, $pageId, $cafenomadId) = explode('#', $payload);
+
+	$buttons = Array(
+		Array(
+			'type' => 'web_url',
+			'title' => '從粉絲團',
+			'url' => sprintf($FB_REVIEW_URL, $pageId)
+		),
+		Array(
+			'type' => 'web_url',
+			'title' => '從 Cafenomad.tw',
+			'url' => sprintf($CAFENOMAD_REVIEW_URL, $cafenomadId)
 		)
 	);
 
@@ -287,7 +330,13 @@ function receivedPostback($event) {
 			sendTextMessage($senderId, '請直接在此留言告訴我們您需要什麼協助，我們會盡快回覆您');
 			break;
 		default:
-			trigger_error('Known postback payload: ' . $payload);
+			if (0 === strpos($payload, 'detail')) {
+				sendDetail($senderId, $payload);
+			} else if (0 === strpos($payload, 'rating')) {
+				sendRating($senderId, $payload);
+			} else {
+				trigger_error('Known postback payload: ' . $payload);
+			}
 	}
 }
 

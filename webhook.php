@@ -1,5 +1,4 @@
 <?php
-require_once('security.php');
 require_once('cafenomad_api.php');
 require_once('config.php');
 require_once('db.php');

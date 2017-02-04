@@ -19,6 +19,8 @@ function getFbPageId($url) {
 }
 
 function getFbData($pageId) {
+	global $FB_EXPLORER_ACCESS_TOKEN;
+
 	$ch = curl_init('https://graph.facebook.com/v2.8/' . $pageId . '?fields=id%2Cname%2Clocation%2Cpicture%2Chours%2Coverall_star_rating%2Crating_count&access_token=' . $FB_EXPLORER_ACCESS_TOKEN);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 	$result = curl_exec($ch);

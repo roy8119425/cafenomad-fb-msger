@@ -9,49 +9,4 @@ function getAllCafeData() {
 
 	return json_decode($result, true);
 }
-
-function findNearestCafe($lat, $long, $filter) {
-	$cafeData = getAllCafeData();
-	$filteredData = Array();
-
-	foreach ($cafeData as &$cafe) {
-		$cafe['distance'] = getRealDistance($lat, $long, $cafe['latitude'], $cafe['longitude']);
-
-		// Do filter
-		if (isset($filter['distance']) && $filter['distance'] < $cafe['distance']) {
-			continue;
-		}
-		if (isset($filter['wifi']) && $filter['wifi'] > $cafe['wifi']) {
-			continue;
-		}
-		if (isset($filter['seat']) && $filter['seat'] > $cafe['seat']) {
-			continue;
-		}
-		if (isset($filter['quiet']) && $filter['quiet'] > $cafe['quiet']) {
-			continue;
-		}
-		if (isset($filter['tasty']) && $filter['tasty'] > $cafe['tasty']) {
-			continue;
-		}
-		if (isset($filter['cheap']) && $filter['cheap'] > $cafe['cheap']) {
-			continue;
-		}
-		if (isset($filter['music']) && $filter['music'] > $cafe['music']) {
-			continue;
-		}
-
-		array_push($filteredData, $cafe);
-	}
-
-	if (0 < count($filteredData)) {
-		usort($filteredData, function($a, $b) {
-			return $a['distance'] - $b['distance'];
-		});
-
-		$filteredData = array_slice($filteredData, 0, 5);
-		getGoogleDistance($lat, $long, $filteredData);
-	}
-
-	return $filteredData;
-}
 ?>
