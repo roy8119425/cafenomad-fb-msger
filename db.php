@@ -17,7 +17,7 @@ function getPref($fbMsgId) {
 	$conn = init() or die();
 	$pref = Array();
 
-	$addDefCmd = 'INSERT IGNORE INTO Preference (fb_msg_id) VALUES (\'' . $fbMsgId . '\')';
+	$addDefCmd = 'INSERT INTO Preference (fb_msg_id) VALUES (\'' . $fbMsgId . '\')';
 	$searchCmd = 'SELECT * FROM Preference WHERE fb_msg_id = \'' . $fbMsgId . '\'';
 
 	$result = mysqli_query($conn, $searchCmd) or trigger_error(mysqli_error($conn));

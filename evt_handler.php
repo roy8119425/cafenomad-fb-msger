@@ -138,6 +138,7 @@ function sendCafeData($recipientId, $cafeData) {
 
 		$e['title'] = getTitleText($cafe);
 		$e['subtitle'] = getSubtitleText($cafe);
+		$e['item_url'] = $cafe['url'];
 		$e['buttons'] = Array();
 
 		array_push($e['buttons'], Array(
