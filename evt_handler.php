@@ -300,6 +300,9 @@ function receivedPostback($event) {
 
 	switch ($payload) {
 		case 'get_started':
+			getPref($senderId);	// For preference initialization
+			getMsgerUserInfo($senderId);
+
 			sendQuickReply($senderId, '感謝您的使用，請問您想開始設定個人偏好嗎？', Array(
 				Array(
 					'content_type' => 'text',

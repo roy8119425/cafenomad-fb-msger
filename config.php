@@ -3,6 +3,7 @@ require_once('security.php');
 
 // Facebook api
 $WEBHOOK_API_URL = 'https://graph.facebook.com/v2.6/me/messages?access_token=' . $FB_PAGE_ACCESS_TOKEN;
+$FB_GRAPH_API_URL = 'https://graph.facebook.com/v2.6/%s?fields=%s&access_token=' . $FB_PAGE_ACCESS_TOKEN;
 $FB_PAGE_URL = 'https://www.facebook.com/%s';
 $FB_ABOUT_URL = 'https://www.facebook.com/pg/%s/about/';
 $FB_REVIEW_URL = 'https://www.facebook.com/pg/%s/reviews/';

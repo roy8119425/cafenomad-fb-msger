@@ -49,6 +49,25 @@ function getGoogleDistance($lat, $long, &$cafeData) {
 	}
 }
 
+function getMsgerUserInfo($fbMsgId) {
+	global $FB_GRAPH_API_URL;
+
+	$ch = curl_init(sprintf($FB_GRAPH_API_URL, $fbMsgId, 'first_name,last_name'));
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	$userInfo = json_decode(curl_exec($ch), true);
+	curl_close($ch);
+
+	$conn = init() or die();
+	$sqlcmd = sprintf("UPDATE Preference SET name = '%s' WHERE fb_msg_id = '%s'",
+		mysqli_real_escape_string($conn, $userInfo['first_name'] . ' ' . $userInfo['last_name']),
+		$fbMsgId
+	);
+	mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
+	mysqli_close($conn);
+
+	return $userInfo;
+}
+
 function getFilter($fbMsgId) {
 	$filter = getPref($fbMsgId);
 
@@ -100,10 +119,11 @@ function getHoursInfo($cafe) {
 	} else {
 		$ret = $hours[$timeRange['open']] . '~' . $hours[$timeRange['close']];
 
-		if (strtotime($hours[$timeRange['open']]) < time() && $hours[$timeRange['close']] > time()) {
+		if (strtotime($hours[$timeRange['open']]) < time() &&
+			strtotime($hours[$timeRange['close']]) > time()) {
 			$ret .= '(營業中)';
 		} else {
-			$ret .= '(已休息)';
+			$ret .= '(休息中)';
 		}
 
 		return $ret;
