@@ -71,13 +71,18 @@ function sendHelp($recipientId) {
 	$buttons = Array(
 		Array(
 			'type' => 'postback',
-			'title' => '偏好設定',
-			'payload' => 'show_pref'
+			'title' => '尋找咖啡廳',
+			'payload' => 'search_cafe'
 		),
 		Array(
 			'type' => 'postback',
-			'title' => '其他',
-			'payload' => 'other_help'
+			'title' => '新增咖啡廳',
+			'payload' => 'add_cafe'
+		),
+		Array(
+			'type' => 'postback',
+			'title' => '偏好設定',
+			'payload' => 'show_pref'
 		)
 	);
 
@@ -97,8 +102,8 @@ function sendModifyPref($recipientId, $pref) {
 	sendQuickReply($recipientId, '請選擇您希望的「' . $prefText[$pref] . '」最低標準', Array(
 		Array(
 			'content_type' => 'text',
-			'title' => '3🌟 ',
-			'payload' => $pref . '_3'
+			'title' => '5🌟 ',
+			'payload' => $pref . '_5'
 		),
 		Array(
 			'content_type' => 'text',
@@ -107,8 +112,8 @@ function sendModifyPref($recipientId, $pref) {
 		),
 		Array(
 			'content_type' => 'text',
-			'title' => '5🌟 ',
-			'payload' => $pref . '_5'
+			'title' => '3🌟 ',
+			'payload' => $pref . '_3'
 		),
 		Array(
 			'content_type' => 'text',
@@ -149,13 +154,11 @@ function sendCafeData($recipientId, $cafeData) {
 		));
 		array_push($e['buttons'], Array(
 			'type' => 'postback',
-			'title' => '詳細資訊',
-			'payload' => 'detail#' . $cafe['fb_id'] . '#' . $cafe['cafenomad_id']
+			'title' => '詳細資訊/評價',
+			'payload' => 'details#' . $cafe['fb_id'] . '#' . $cafe['cafenomad_id']
 		));
 		array_push($e['buttons'], Array(
-			'type' => 'postback',
-			'title' => '看評價/給評價',
-			'payload' => 'rating#' . $cafe['fb_id'] . '#' . $cafe['cafenomad_id']
+			'type' => 'element_share'
 		));
 
 		array_push($elements, $e);
@@ -175,6 +178,26 @@ function sendCafeData($recipientId, $cafeData) {
 			}
 		}
 	}');
+}
+
+function sendAddCafe($recipientId) {
+	global $CAFENOMAD_CONTRIBUTE_URL;
+
+	$msg = '請選擇新增方式';
+
+	$buttons = Array(
+		Array(
+			'type' => 'postback',
+			'title' => '透過粉絲團網址或 ID',
+			'payload' => 'add_by_fb_page'
+		),
+		Array(
+			'type' => 'web_url',
+			'title' => '透過 Cafenomad.tw',
+			'url' => $CAFENOMAD_CONTRIBUTE_URL
+		)
+	);
+	sendButtons($recipientId, $msg, $buttons);
 }
 
 function sendPref($recipientId) {
@@ -204,44 +227,27 @@ function sendPref($recipientId) {
 	sendButtons($recipientId, $msg, $buttons);
 }
 
-function sendDetail($recipientId, $payload) {
-	global $FB_ABOUT_URL, $CAFENOMAD_SHOP_INFO;
+function sendDetails($recipientId, $payload) {
+	global $FB_ABOUT_URL, $FB_REVIEW_URL, $CAFENOMAD_SHOP_INFO;
 
-	$msg = '您想從哪個網站看詳細資訊呢？';
+	$msg = '您想看什麼資訊呢？';
 	list($skip, $pageId, $cafenomadId) = explode('#', $payload);
 
 	$buttons = Array(
 		Array(
 			'type' => 'web_url',
-			'title' => '從粉絲團',
+			'title' => '粉絲團詳細資訊',
 			'url' => sprintf($FB_ABOUT_URL, $pageId)
 		),
 		Array(
 			'type' => 'web_url',
-			'title' => '從 Cafenomad.tw',
-			'url' => sprintf($CAFENOMAD_SHOP_INFO, $cafenomadId)
-		)
-	);
-
-	sendButtons($recipientId, $msg, $buttons);
-}
-
-function sendRating($recipientId, $payload) {
-	global $FB_REVIEW_URL, $CAFENOMAD_REVIEW_URL;
-
-	$msg = '您想從哪個網站看/給評論呢？';
-	list($skip, $pageId, $cafenomadId) = explode('#', $payload);
-
-	$buttons = Array(
-		Array(
-			'type' => 'web_url',
-			'title' => '從粉絲團',
+			'title' => '粉絲團評價',
 			'url' => sprintf($FB_REVIEW_URL, $pageId)
 		),
 		Array(
 			'type' => 'web_url',
-			'title' => '從 Cafenomad.tw',
-			'url' => sprintf($CAFENOMAD_REVIEW_URL, $cafenomadId)
+			'title' => 'Cafenomad.tw 詳細資訊',
+			'url' => sprintf($CAFENOMAD_SHOP_INFO, $cafenomadId)
 		)
 	);
 
@@ -273,17 +279,31 @@ function receivedMessage($event) {
 				} else {
 					sendTextMessage($senderId, '很抱歉，在您附近搜尋不到任何咖啡廳');
 				}
+			} else if ('fallback' === $attachment['type'] && isset($attachment['url'])) {
+				$waitingMsg = getWaitingMsg($senderId);
+
+				if (!is_null($waitingMsg)) {
+					processWaitingMsg($senderId, $waitingMsg, $attachment['url']);
+				}
 			}
 		}
 	} else {
 		// Normal text
 		$text = $message['text'];
-		$cmd = fetchCmd($text);
+		$waitingMsg = getWaitingMsg($senderId);
 
-		if (!is_null($cmd)) {
-			processCmd($senderId, $cmd);
+		if (!is_null($waitingMsg)) {
+			processWaitingMsg($senderId, $waitingMsg, $text);
+		} else {
+			$cmd = fetchCmd($text);
+
+			if (!is_null($cmd)) {
+				processCmd($senderId, $cmd);
+			}
 		}
 	}
+
+	clearWaitingMsg($senderId);
 }
 
 function receivedAuthentication($event) {
@@ -303,7 +323,7 @@ function receivedPostback($event) {
 			getPref($senderId);	// For preference initialization
 			getMsgerUserInfo($senderId);
 
-			sendQuickReply($senderId, '感謝您的使用，請問您想開始設定個人偏好嗎？', Array(
+			sendQuickReply($senderId, '感謝您的使用，請問您想開始設定個人偏好嗎？\n(如果下面沒有出現按鈕，請使用左下方的選單也可以開始設定唷～)', Array(
 				Array(
 					'content_type' => 'text',
 					'title' => '立即開始',
@@ -319,6 +339,13 @@ function receivedPostback($event) {
 		case 'search_cafe':
 			sendLocationHint($senderId, '請點擊下方按鈕，或傳送位置資訊給我們');
 			break;
+		case 'add_cafe':
+			sendAddCafe($senderId);
+			break;
+		case 'add_by_fb_page':
+			setWaitingMsg($senderId, 'add_fb_page', NULL);
+			sendTextMessage($senderId, '請輸入粉絲團網址或 ID：');
+			break;
 		case 'show_pref':
 			sendPref($senderId);
 			break;
@@ -333,12 +360,10 @@ function receivedPostback($event) {
 			sendTextMessage($senderId, '請直接在此留言告訴我們您需要什麼協助，我們會盡快回覆您');
 			break;
 		default:
-			if (0 === strpos($payload, 'detail')) {
-				sendDetail($senderId, $payload);
-			} else if (0 === strpos($payload, 'rating')) {
-				sendRating($senderId, $payload);
+			if (0 === strpos($payload, 'details')) {
+				sendDetails($senderId, $payload);
 			} else {
-				trigger_error('Known postback payload: ' . $payload);
+				trigger_error('Unknown postback payload: ' . $payload);
 			}
 	}
 }
@@ -352,15 +377,14 @@ function receivedAccountLink($event) {
 }
 
 function processCmd($senderId, $cmd) {
+	sendAction($senderId, 'typing_on');
+
 	switch ($cmd) {
-		case 'cafe':
-			sendLocationHint($senderId, '請點擊下方按鈕，或傳送位置資訊給我們');
-			break;
 		case 'help':
 			sendHelp($senderId);
 			break;
 		default:
-			trigger_error('Known cmd: ' . $cmd);
+			trigger_error('Unknown cmd: ' . $cmd);
 	}
 }
 
@@ -398,7 +422,38 @@ function processQuickReply($senderId, $payload) {
 			}
 			break;
 		default:
-			trigger_error('Known quick reply payload: ' . $payload);
+			trigger_error('Unknown quick reply payload: ' . $payload);
+	}
+}
+
+function processWaitingMsg($senderId, $waitingMsg, $text) {
+	sendAction($senderId, 'typing_on');
+
+	switch ($waitingMsg['type']) {
+		case 'add_fb_page':
+			$pageId = (false === stripos($text, 'facebook.com') ? $text : getFbPageId($text));
+
+			if (is_null($pageId) || 0 === strlen($pageId)) {
+				sendTextMessage($senderId, '格式錯誤，請檢查粉絲團網址或 ID 是否正確');
+			} else {
+				$fbData = getFbData($pageId);
+
+				if (isset($fbData['error']) || !isset($fbData['id'])) {
+					sendTextMessage($senderId, '無法取得粉絲團資料，請檢查粉絲團網址或 ID 是否正確');
+					return;
+				}
+
+				if (checkStoreExist($fbData['id'])) {
+					sendTextMessage($senderId, '這間店已經存在囉～感謝您的熱心協助！');
+					return;
+				}
+
+				addStore($fbData);
+				sendTextMessage($senderId, '新增『' . $fbData['name'] . '』完成！非常感謝您提供的資訊，讓我們的咖啡廳資料庫越來越完善～\n(新增的店家不會馬上出現在搜尋結果中，需要一段時間審核後才會更新唷)');
+			}
+			break;
+		default:
+			trigger_error('Unknown waiting msg type: ' . $waitingMsg['type']);
 	}
 }
 ?>

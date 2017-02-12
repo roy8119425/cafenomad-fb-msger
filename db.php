@@ -52,8 +52,90 @@ function clearPref($fbMsgId) {
 	);
 
 	mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
-
 	mysqli_close($conn);
+}
+
+function getWaitingMsg($fbMsgId) {
+	$conn = init() or die();
+	$sqlcmd = (
+		'SELECT * FROM WaitingMsg WHERE fb_msg_id = \'' . $fbMsgId . '\''
+	);
+
+	$result = mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
+	mysqli_close($conn);
+
+	return 1 === mysqli_num_rows($result) ? mysqli_fetch_assoc($result) : NULL;
+}
+
+function setWaitingMsg($fbMsgId, $type, $data) {
+	$conn = init() or die();
+	$sqlcmd = sprintf("INSERT INTO WaitingMsg (fb_msg_id, type, data) VALUES ('%s', '%s', '%s')",
+		$fbMsgId, $type, (is_null($data) ? NULL : json_encode($data))
+	);
+
+	mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
+	mysqli_close($conn);
+}
+
+function clearWaitingMsg($fbMsgId) {
+	$conn = init() or die();
+	$sqlcmd = (
+		'DELETE FROM WaitingMsg WHERE fb_msg_id = \'' . $fbMsgId . '\''
+	);
+
+	mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
+	mysqli_close($conn);
+}
+
+function checkStoreExist($fbId) {
+	$conn = init() or die();
+	$sqlcmd = (
+		'SELECT * FROM Store WHERE fb_id = \'' . $fbId . '\''
+	);
+
+	$result = mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
+	mysqli_close($conn);
+
+	return 0 < mysqli_num_rows($result);
+}
+
+function addStore($fbData) {
+	$conn = init() or die();
+	$sqlcmd = sprintf("INSERT INTO Store (fb_id, name, address, picture, hours, lat, `long`, fb_rating, fb_rating_count) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d)",
+		mysqli_real_escape_string($conn, $fbData['id']),
+		mysqli_real_escape_string($conn, $fbData['name']),
+		mysqli_real_escape_string($conn, $fbData['location']['street']),
+		mysqli_real_escape_string($conn, $fbData['picture']['data']['url']),
+		mysqli_real_escape_string($conn, json_encode($fbData['hours'])),
+		mysqli_real_escape_string($conn, $fbData['location']['latitude']),
+		mysqli_real_escape_string($conn, $fbData['location']['longitude']),
+		mysqli_real_escape_string($conn, $fbData['overall_star_rating']),
+		mysqli_real_escape_string($conn, $fbData['rating_count'])
+	);
+
+	mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
+	mysqli_close($conn);
+}
+
+function findStoreBy($cond) {
+	$conn = init() or die();
+	$condArray = Array();
+
+	if (isset($cond['fb_id'])) {
+		$fbId = mysqli_real_escape_string($conn, $cond['fb_id']);
+		array_push($condArray, sprintf("fb_id = '%s'", $fbId));
+	}
+	if (isset($cond['cafenomad_id'])) {
+		$cafenomadId = mysqli_real_escape_string($conn, $cond['cafenomad_id']);
+		array_push($condArray, sprintf("cafenomad_id = '%s'", $cafenomadId));
+	}
+
+	$sqlcmd = 'SELECT * FROM Store WHERE ' . join(' AND ', $condArray);
+
+	$result = mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
+	mysqli_close($conn);
+
+	return $result;
 }
 
 function findNearestCafe($lat, $long, $filter) {
@@ -71,22 +153,22 @@ function findNearestCafe($lat, $long, $filter) {
 		if (isset($filter['distance']) && $filter['distance'] < $cafe['distance']) {
 			continue;
 		}
-		if (isset($filter['wifi']) && $filter['wifi'] > $cafe['wifi']) {
+		if (isset($filter['wifi']) && 0 < $cafe['wifi'] && $filter['wifi'] > $cafe['wifi']) {
 			continue;
 		}
-		if (isset($filter['seat']) && $filter['seat'] > $cafe['seat']) {
+		if (isset($filter['seat']) && 0 < $cafe['seat'] && $filter['seat'] > $cafe['seat']) {
 			continue;
 		}
-		if (isset($filter['quiet']) && $filter['quiet'] > $cafe['quiet']) {
+		if (isset($filter['quiet']) && 0 < $cafe['quiet'] && $filter['quiet'] > $cafe['quiet']) {
 			continue;
 		}
-		if (isset($filter['tasty']) && $filter['tasty'] > $cafe['tasty']) {
+		if (isset($filter['tasty']) && 0 < $cafe['tasty'] && $filter['tasty'] > $cafe['tasty']) {
 			continue;
 		}
-		if (isset($filter['cheap']) && $filter['cheap'] > $cafe['cheap']) {
+		if (isset($filter['cheap']) && 0 < $cafe['cheap'] && $filter['cheap'] > $cafe['cheap']) {
 			continue;
 		}
-		if (isset($filter['music']) && $filter['music'] > $cafe['music']) {
+		if (isset($filter['music']) && 0 < $cafe['music'] && $filter['music'] > $cafe['music']) {
 			continue;
 		}
 

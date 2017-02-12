@@ -68,6 +68,31 @@ function getMsgerUserInfo($fbMsgId) {
 	return $userInfo;
 }
 
+function getFbPageId($url) {
+	if (false === stripos($url, 'facebook.com')) {
+		return NULL;
+	}
+
+	$pageId = preg_replace('/https?:\/\/(.*\.)?facebook\.com(\/pg|\/pages\/.*)?\//i', '', $url);
+	$pageId = preg_replace('/\?.*/i', '', $pageId);
+	$pageId = current(explode('/', $pageId));
+	if ($pos = strrpos($pageId, '-')) {
+		$pageId = substr($pageId, $pos + 1);
+	}
+	return $pageId;
+}
+
+function getFbData($pageId) {
+	global $FB_EXPLORER_ACCESS_TOKEN;
+
+	$ch = curl_init('https://graph.facebook.com/v2.8/' . $pageId . '?fields=id%2Cname%2Clocation%2Cpicture%2Chours%2Coverall_star_rating%2Crating_count&access_token=' . $FB_EXPLORER_ACCESS_TOKEN);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	$result = curl_exec($ch);
+	curl_close($ch);
+
+	return json_decode($result, true);
+}
+
 function getFilter($fbMsgId) {
 	$filter = getPref($fbMsgId);
 
@@ -89,16 +114,23 @@ function getTitleText($cafe) {
 }
 
 function getSubtitleText($cafe) {
+	$wifi = ('0' === $cafe['wifi'] ? '- -　　' : number_format($cafe['wifi'], 1) . '🌟 ');
+	$seat = ('0' === $cafe['seat'] ? '- -　　' : number_format($cafe['seat'], 1) . '🌟 ');
+	$quiet = ('0' === $cafe['quiet'] ? '- -　　' : number_format($cafe['quiet'], 1) . '🌟 ');
+	$tasty = ('0' === $cafe['tasty'] ? '- -　　' : number_format($cafe['tasty'], 1) . '🌟 ');
+	$cheap = ('0' === $cafe['cheap'] ? '- -　　' : number_format($cafe['cheap'], 1) . '🌟 ');
+	$music = ('0' === $cafe['music'] ? '- -　　' : number_format($cafe['music'], 1) . '🌟 ');
+
 	return
-	'網路 ' . number_format($cafe['wifi'], 1) . '🌟  空位 ' . number_format($cafe['seat'], 1) . '🌟
-' . '寧靜 ' . number_format($cafe['quiet'], 1) . '🌟  好喝 ' . number_format($cafe['tasty'], 1) . '🌟
-' . '便宜 ' . number_format($cafe['cheap'], 1) . '🌟  氣氛 ' . number_format($cafe['music'], 1) . '🌟
+	'網路 ' . $wifi . ' 空位 ' . $seat . '
+' . '寧靜 ' . $quiet . ' 好喝 ' . $tasty . '
+' . '便宜 ' . $cheap . ' 氣氛 ' . $music . '
 ' . '粉絲團評價 ' . number_format($cafe['fb_rating']) . '🌟(' . $cafe['fb_rating_count'] . ' 個評分)';
 }
 
 function getHoursInfo($cafe) {
 	if (0 === strlen($cafe['hours'])) {
-		return '';
+		return '無營業資訊';
 	}
 
 	$dayMap = Array(

@@ -16,6 +16,7 @@ $GOOGLE_PLACE = 'https://www.google.com/maps/place/%s,%s/@%s,%s,17z';
 $CAFENOMAD_API_URL = 'https://cafenomad.tw/api/v1.1/cafes';
 $CAFENOMAD_SHOP_INFO = 'https://cafenomad.tw/shop/%s';
 $CAFENOMAD_REVIEW_URL = 'https://cafenomad.tw/review/%s';
+$CAFENOMAD_CONTRIBUTE_URL = 'https://cafenomad.tw/contribute';
 
 // Database
 $DB_ADDR = 'localhost';

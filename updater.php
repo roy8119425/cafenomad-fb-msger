@@ -3,62 +3,53 @@ require_once('cafenomad_api.php');
 require_once('config.php');
 require_once('db.php');
 require_once('error.php');
+require_once('utils.php');
 
-function getFbPageId($url) {
-	if (!stripos($url, 'facebook.com')) {
-		return NULL;
-	}
-
-	$pageId = preg_replace('/https?:\/\/(.*\.)?facebook\.com(\/pg|\/pages\/.*)?\//i', '', $url);
-	$pageId = preg_replace('/\?.*/i', '', $pageId);
-	$pageId = current(explode('/', $pageId));
-	if ($pos = strrpos($pageId, '-')) {
-		$pageId = substr($pageId, $pos + 1);
-	}
-	return $pageId;
-}
-
-function getFbData($pageId) {
-	global $FB_EXPLORER_ACCESS_TOKEN;
-
-	$ch = curl_init('https://graph.facebook.com/v2.8/' . $pageId . '?fields=id%2Cname%2Clocation%2Cpicture%2Chours%2Coverall_star_rating%2Crating_count&access_token=' . $FB_EXPLORER_ACCESS_TOKEN);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-	$result = curl_exec($ch);
-	curl_close($ch);
-
-	return json_decode($result, true);
-}
+$dupIdArray = Array(
+	'0afcce7c-0d43-466b-8430-286b9608dd5c', '45666880-16fa-40bd-919a-7d22e59d479c',
+	'469220ff-8419-4d7e-9f16-f78d93f28953', '04111f17-09e5-4989-b31f-974fa2406518'
+);
 
 function update($cafe) {
-	$conn = init() or die();
-	$searchCmd = sprintf("SELECT * FROM Store WHERE cafenomad_id = '%s'",
-		mysqli_real_escape_string($conn, $cafe['id'])
-	);
-	$result = mysqli_query($conn, $searchCmd) or trigger_error(mysqli_error($conn));
-	mysqli_close($conn);
+	global $dupIdArray;
 
-	if (!$result || 0 >= mysqli_num_rows($result)) {
+	// Skip duplicate cafenomad id
+	if (in_array($cafe['id'], $dupIdArray)) {
+		trigger_error(sprintf('Skip dup cafe: %s(%s)', $cafe['id'], $cafe['name']));
+		return;
+	}
+
+	// Get fb page id from db first. If not exists, try to fetch from cafe url
+	$result = findStoreBy(Array('cafenomad_id' => $cafe['id']));
+	if (1 === mysqli_num_rows($result)) {
+		$record = mysqli_fetch_assoc($result);
+		$pageId = $record['fb_id'];
+		$action = 'update';
+	} else {
 		$pageId = getFbPageId($cafe['url']);
 		if (is_null($pageId)) {
 			trigger_error($cafe['name'] . 'Failed to fetch page id from: ' . $cafe['url']);
 			return;
 		}
 		$action = 'insert';
-	} else if (1 === mysqli_num_rows($result)) {
-		$record = mysqli_fetch_assoc($result);
-		$pageId = $record['fb_id'];
-		$action = 'update';
-	} else {
-		trigger_error('Find too many records of cafenomad id: ' . $cafe['id']);
-		return;
 	}
+	mysqli_free_result($result);
 
+	// Get fb data by explorer api
 	$fbData = getFbData($pageId);
-
 	if (isset($fbData['error']) || !isset($fbData['id'])) {
 		trigger_error($cafe['name'] . 'Failed to get fb data by page id: ' . $pageId);
 		return;
 	}
+
+	// If the fb page id is already in db, do udate only
+	$result = findStoreBy(Array('fb_id' => $fbData['id']));
+	if (1 === mysqli_num_rows($result)) {
+		$action = 'update';
+	}
+
+	$lat = (isset($fbData['location']['latitude']) ? $fbData['location']['latitude'] : $cafe['latitude']);
+	$long = (isset($fbData['location']['longitude']) ? $fbData['location']['longitude'] : $cafe['longitude']);
 
 	$conn = init() or die();
 	switch ($action) {
@@ -70,8 +61,8 @@ function update($cafe) {
 			mysqli_real_escape_string($conn, $fbData['location']['street']),
 			mysqli_real_escape_string($conn, $fbData['picture']['data']['url']),
 			mysqli_real_escape_string($conn, json_encode($fbData['hours'])),
-			mysqli_real_escape_string($conn, $fbData['location']['latitude']),
-			mysqli_real_escape_string($conn, $fbData['location']['longitude']),
+			mysqli_real_escape_string($conn, $lat),
+			mysqli_real_escape_string($conn, $long),
 			mysqli_real_escape_string($conn, $fbData['overall_star_rating']),
 			mysqli_real_escape_string($conn, $fbData['rating_count']),
 			mysqli_real_escape_string($conn, $cafe['wifi']),
@@ -92,8 +83,8 @@ function update($cafe) {
 			mysqli_real_escape_string($conn, $fbData['location']['street']),
 			mysqli_real_escape_string($conn, $fbData['picture']['data']['url']),
 			mysqli_real_escape_string($conn, json_encode($fbData['hours'])),
-			mysqli_real_escape_string($conn, $fbData['location']['latitude']),
-			mysqli_real_escape_string($conn, $fbData['location']['longitude']),
+			mysqli_real_escape_string($conn, $lat),
+			mysqli_real_escape_string($conn, $long),
 			mysqli_real_escape_string($conn, $fbData['overall_star_rating']),
 			mysqli_real_escape_string($conn, $fbData['rating_count']),
 			mysqli_real_escape_string($conn, $cafe['wifi']),
