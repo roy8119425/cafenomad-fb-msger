@@ -128,7 +128,10 @@ function getSubtitleText($cafe) {
 ' . '粉絲團評價 ' . number_format($cafe['fb_rating']) . '🌟(' . $cafe['fb_rating_count'] . ' 個評分)';
 }
 
-function getHoursInfo($cafe) {
+function getHoursInfo($cafe, &$blOpening = NULL) {
+	if (!is_null($blOpening)) {
+		$blOpening = false;
+	}
 	if (0 === strlen($cafe['hours'])) {
 		return '無營業資訊';
 	}
@@ -151,8 +154,15 @@ function getHoursInfo($cafe) {
 	} else {
 		$ret = $hours[$timeRange['open']] . '~' . $hours[$timeRange['close']];
 
+		if ('00:00' === $hours[$timeRange['close']]) {
+			$hours[$timeRange['close']] = '24:00';
+		}
+
 		if (strtotime($hours[$timeRange['open']]) < time() &&
 			strtotime($hours[$timeRange['close']]) > time()) {
+			if (!is_null($blOpening)) {
+				$blOpening = true;
+			}
 			$ret .= '(營業中)';
 		} else {
 			$ret .= '(休息中)';

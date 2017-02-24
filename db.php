@@ -171,6 +171,15 @@ function findNearestCafe($lat, $long, $filter) {
 		if (isset($filter['music']) && 0 < $cafe['music'] && $filter['music'] > $cafe['music']) {
 			continue;
 		}
+		if (isset($filter['opening']) && 0 < $filter['opening']) {
+			$blOpening = false;
+
+			getHoursInfo($cafe, $blOpening);
+
+			if (!$blOpening) {
+				continue;
+			}
+		}
 
 		array_push($filteredData, $cafe);
 	}

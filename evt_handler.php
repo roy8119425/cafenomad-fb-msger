@@ -99,28 +99,49 @@ function sendModifyPref($recipientId, $pref) {
 		'music' => '氣氛'
 	);
 
-	sendQuickReply($recipientId, '請選擇您希望的「' . $prefText[$pref] . '」最低標準', Array(
-		Array(
-			'content_type' => 'text',
-			'title' => '5🌟 ',
-			'payload' => $pref . '_5'
-		),
-		Array(
-			'content_type' => 'text',
-			'title' => '4🌟 ',
-			'payload' => $pref . '_4'
-		),
-		Array(
-			'content_type' => 'text',
-			'title' => '3🌟 ',
-			'payload' => $pref . '_3'
-		),
-		Array(
-			'content_type' => 'text',
-			'title' => '不在意',
-			'payload' => $pref . '_0'
-		)
-	));
+	if (isset($prefText[$pref])) {
+		sendQuickReply($recipientId, '請選擇您希望的「' . $prefText[$pref] . '」最低標準', Array(
+			Array(
+				'content_type' => 'text',
+				'title' => '5🌟 ',
+				'payload' => $pref . '_5'
+			),
+			Array(
+				'content_type' => 'text',
+				'title' => '4🌟 ',
+				'payload' => $pref . '_4'
+			),
+			Array(
+				'content_type' => 'text',
+				'title' => '3🌟 ',
+				'payload' => $pref . '_3'
+			),
+			Array(
+				'content_type' => 'text',
+				'title' => '不在意',
+				'payload' => $pref . '_0'
+			)
+		));
+	} else {
+		switch ($pref) {
+			case 'opening':
+				sendQuickReply($recipientId, '是否只列出「正在營業中」的店家？', Array(
+					Array(
+						'content_type' => 'text',
+						'title' => '是',
+						'payload' => 'opening_1'
+					),
+					Array(
+						'content_type' => 'text',
+						'title' => '否',
+						'payload' => 'opening_0'
+					)
+				));
+				break;
+			default:
+				trigger_error('Unsupported pref: ' . $pref);
+		}
+	}
 }
 
 function sendLocationHint($recipientId, $text) {
@@ -210,6 +231,7 @@ function sendPref($recipientId) {
 	$msg .= ('好喝：' . (0 < $pref['tasty'] ? $pref['tasty'] . '🌟 ' : '不在意') . '\n');
 	$msg .= ('便宜：' . (0 < $pref['cheap'] ? $pref['cheap'] . '🌟 ' : '不在意') . '\n');
 	$msg .= ('氣氛：' . (0 < $pref['music'] ? $pref['music'] . '🌟 ' : '不在意') . '\n');
+	$msg .= ('營業中：' . (0 < $pref['opening'] ? '是' : '否') . '\n');
 
 	$buttons = Array(
 		Array(
@@ -277,7 +299,7 @@ function receivedMessage($event) {
 				if (0 < count($nearestCafe)) {
 					sendCafeData($senderId, $nearestCafe);
 				} else {
-					sendTextMessage($senderId, '很抱歉，在您附近搜尋不到任何咖啡廳');
+					sendTextMessage($senderId, '很抱歉，在您附近搜尋不到任何符合的咖啡廳，可以將偏好設定放寬鬆點再試試看\n（也有可能是附近真的沒有咖啡廳～那麼可以透過左下方選單來新增咖啡廳喲！）');
 				}
 			} else if ('fallback' === $attachment['type'] && isset($attachment['url'])) {
 				$waitingMsg = getWaitingMsg($senderId);
@@ -323,7 +345,7 @@ function receivedPostback($event) {
 			getPref($senderId);	// For preference initialization
 			getMsgerUserInfo($senderId);
 
-			sendQuickReply($senderId, '感謝您的使用，請問您想開始設定個人偏好嗎？\n(如果下面沒有出現按鈕，請使用左下方的選單也可以開始設定唷～)', Array(
+			sendQuickReply($senderId, '感謝您的使用，請問您想開始設定個人偏好嗎？\n（如果下面沒有出現按鈕，請使用左下方的選單也可以開始設定唷～）', Array(
 				Array(
 					'content_type' => 'text',
 					'title' => '立即開始',
@@ -397,7 +419,8 @@ function processQuickReply($senderId, $payload) {
 		'quiet' => 'tasty',
 		'tasty' => 'cheap',
 		'cheap' => 'music',
-		'music' => NULL
+		'music' => 'opening',
+		'opening' => NULL
 	);
 
 	switch ($payload) {
@@ -413,6 +436,7 @@ function processQuickReply($senderId, $payload) {
 		case 'tasty_0': case 'tasty_3': case 'tasty_4': case 'tasty_5':
 		case 'cheap_0': case 'cheap_3': case 'cheap_4': case 'cheap_5':
 		case 'music_0': case 'music_3': case 'music_4': case 'music_5':
+		case 'opening_0': case 'opening_1':
 			list($pref, $value) = explode('_', $payload);
 			setPref($senderId, $pref, $value);
 			if (!is_null($prefFlowNext[$pref])) {
