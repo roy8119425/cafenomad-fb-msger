@@ -49,6 +49,33 @@ function getGoogleDistance($lat, $long, &$cafeData) {
 	}
 }
 
+function getGoogleLocation($address) {
+	global $GOOGLE_LOCATION;
+	$ret = Array();
+
+	$ch = curl_init(sprintf($GOOGLE_LOCATION, $address));
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+	$result = json_decode(curl_exec($ch), true);
+	curl_close($ch);
+
+	if ('OK' !== $result['status']) {
+		trigger_error('Google Location Error: ' . $result['status'] . ' (' . $address . ')');
+		if (isset($result['error_message'])) {
+			trigger_error('=> Error message: ' . $result['error_message']);
+		}
+		$ret['status'] = 'ERROR';
+	} else if (1 < count($result['results'])) {
+		$ret['status'] = 'TOO_MANY_RESULTS';
+	} else {
+		$ret['address'] = $result['results'][0]['formatted_address'];
+		$ret['lat'] = $result['results'][0]['geometry']['location']['lat'];
+		$ret['long'] = $result['results'][0]['geometry']['location']['lng'];
+		$ret['status'] = 'SUCCESS';
+	}
+
+	return $ret;
+}
+
 function getMsgerUserInfo($fbMsgId) {
 	global $FB_GRAPH_API_URL;
 
@@ -170,15 +197,5 @@ function getHoursInfo($cafe, &$blOpening = NULL) {
 
 		return $ret;
 	}
-}
-
-function fetchCmd($text) {
-	if (0 === strcasecmp($text, 'cafe')) {
-		return 'cafe';
-	}
-	if (0 === strcasecmp($text, 'help')) {
-		return 'help';
-	}
-	return NULL;
 }
 ?>

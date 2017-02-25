@@ -10,6 +10,7 @@ $FB_REVIEW_URL = 'https://www.facebook.com/pg/%s/reviews/';
 
 // Google api
 $GOOGLE_DISTANCE = 'https://maps.googleapis.com/maps/api/distancematrix/json?origins=%s,%s&destinations=%s&key=' . $GOOGLE_API_KEY;
+$GOOGLE_LOCATION = 'https://maps.googleapis.com/maps/api/geocode/json?address="%s"&language=zh-TW&key=' . $GOOGLE_API_KEY;
 $GOOGLE_PLACE = 'https://www.google.com/maps/place/%s,%s/@%s,%s,17z';
 
 // Cafenomad api

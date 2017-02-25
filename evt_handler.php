@@ -67,28 +67,6 @@ function sendAction($recipientId, $action) {
 	}');
 }
 
-function sendHelp($recipientId) {
-	$buttons = Array(
-		Array(
-			'type' => 'postback',
-			'title' => '尋找咖啡廳',
-			'payload' => 'search_cafe'
-		),
-		Array(
-			'type' => 'postback',
-			'title' => '新增咖啡廳',
-			'payload' => 'add_cafe'
-		),
-		Array(
-			'type' => 'postback',
-			'title' => '偏好設定',
-			'payload' => 'show_pref'
-		)
-	);
-
-	sendButtons($recipientId, '有什麼能幫助您的嗎？', $buttons);
-}
-
 function sendModifyPref($recipientId, $pref) {
 	$prefText = Array(
 		'wifi' => '網路',
@@ -317,10 +295,21 @@ function receivedMessage($event) {
 		if (!is_null($waitingMsg)) {
 			processWaitingMsg($senderId, $waitingMsg, $text);
 		} else {
-			$cmd = fetchCmd($text);
+			$googleLoc = getGoogleLocation($text);
 
-			if (!is_null($cmd)) {
-				processCmd($senderId, $cmd);
+			if ('TOO_MANY_RESULTS' === $googleLoc['status']) {
+				sendTextMessage($senderId, '查到太多資料，無法分辨您想搜尋的地點，請提供更精確的位置');
+			} else if ('SUCCESS' === $googleLoc['status']) {
+				sendTextMessage($senderId, '搜尋地點：' . $googleLoc['address']);
+				sendAction($senderId, 'typing_on');
+
+				$nearestCafe = findNearestCafe($googleLoc['lat'], $googleLoc['long'], getFilter($senderId));
+
+				if (0 < count($nearestCafe)) {
+					sendCafeData($senderId, $nearestCafe);
+				} else {
+					sendTextMessage($senderId, '很抱歉，在此地點附近搜尋不到任何符合的咖啡廳，可以將偏好設定放寬鬆點再試試看\n（也有可能是該地點附近真的沒有咖啡廳～那麼可以透過左下方選單來新增咖啡廳喲！）');
+				}
 			}
 		}
 	}
@@ -378,9 +367,6 @@ function receivedPostback($event) {
 			clearPref($senderId);
 			sendPref($senderId);
 			break;
-		case 'other_help':
-			sendTextMessage($senderId, '請直接在此留言告訴我們您需要什麼協助，我們會盡快回覆您');
-			break;
 		default:
 			if (0 === strpos($payload, 'details')) {
 				sendDetails($senderId, $payload);
@@ -396,18 +382,6 @@ function receivedMessageRead($event) {
 
 function receivedAccountLink($event) {
 	trigger_error('===== receivedAccountLink');
-}
-
-function processCmd($senderId, $cmd) {
-	sendAction($senderId, 'typing_on');
-
-	switch ($cmd) {
-		case 'help':
-			sendHelp($senderId);
-			break;
-		default:
-			trigger_error('Unknown cmd: ' . $cmd);
-	}
 }
 
 function processQuickReply($senderId, $payload) {
@@ -428,7 +402,7 @@ function processQuickReply($senderId, $payload) {
 			sendModifyPref($senderId, 'wifi');
 			break;
 		case 'set_pref_later':
-			sendLocationHint($senderId, '感謝您！之後若想設定嚴選條件，請點擊左下方選單或者直接輸入 help。現在您可以傳送位置資訊給我們，來找出附近的優質咖啡廳囉！');
+			sendLocationHint($senderId, '感謝您！之後隨時可以在左下方選單中修改偏好設定喲。現在您可以傳送位置資訊給我們，來找出附近的優質咖啡廳囉！');
 			break;
 		case 'wifi_0': case 'wifi_3': case 'wifi_4': case 'wifi_5':
 		case 'seat_0': case 'seat_3': case 'seat_4': case 'seat_5':
@@ -442,7 +416,7 @@ function processQuickReply($senderId, $payload) {
 			if (!is_null($prefFlowNext[$pref])) {
 				sendModifyPref($senderId, $prefFlowNext[$pref]);
 			} else {
-				sendLocationHint($senderId, '修改完成！若想重新設定，請點擊左下方選單或者直接輸入 help。現在您可以傳送位置資訊給我們，來找出附近的優質咖啡廳囉！');
+				sendLocationHint($senderId, '修改完成！之後隨時可以在左下方選單中修改設定喲。現在您可以傳送位置資訊給我們，來找出附近的優質咖啡廳囉！');
 			}
 			break;
 		default:

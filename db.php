@@ -47,7 +47,8 @@ function clearPref($fbMsgId) {
 	$sqlcmd = (
 		'UPDATE Preference SET ' .
 		'wifi = 0, seat = 0, quiet = 0, ' .
-		'tasty = 0, cheap = 0, music = 0 ' .
+		'tasty = 0, cheap = 0, music = 0, ' .
+		'opening = 0 ' .
 		'WHERE fb_msg_id = \'' . $fbMsgId . '\''
 	);
 
