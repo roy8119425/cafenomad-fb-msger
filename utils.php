@@ -49,6 +49,15 @@ function getGoogleDistance($lat, $long, &$cafeData) {
 	}
 }
 
+function checkRegionTW($address_components) {
+	foreach ($address_components as $comp) {
+		if ('TW' === $comp['short_name']) {
+			return true;
+		}
+	}
+	return false;
+}
+
 function getGoogleLocation($address) {
 	global $GOOGLE_LOCATION;
 	$ret = Array();
@@ -66,6 +75,8 @@ function getGoogleLocation($address) {
 		$ret['status'] = 'ERROR';
 	} else if (1 < count($result['results'])) {
 		$ret['status'] = 'TOO_MANY_RESULTS';
+	} else if (!checkRegionTW($result['results'][0]['address_components'])) {
+		$ret['status'] = 'NOT_IN_TAIWAN';
 	} else {
 		$ret['address'] = $result['results'][0]['formatted_address'];
 		$ret['lat'] = $result['results'][0]['geometry']['location']['lat'];
@@ -197,5 +208,22 @@ function getHoursInfo($cafe, &$blOpening = NULL) {
 
 		return $ret;
 	}
+}
+
+function downloadFbPicture($fbId) {
+	$url = sprintf('https://graph.facebook.com/%s/picture?width=382&height=200&redirect=false', $fbId);
+
+	$res = json_decode(file_get_contents($url), true);
+	if (isset($res['error'])) {
+		trigger_error(sprintf('Failed to download picture of %s: %s', $fbId, $res['error']['message']));
+		return;
+	}
+
+	$url = $res['data']['url'];
+	$ext = pathinfo(preg_replace('/\?.*/i', '', $url), PATHINFO_EXTENSION);
+	$filename = $fbId . '.' . $ext;
+
+	file_put_contents('images/' . $filename, file_get_contents($url));
+	return $filename;
 }
 ?>

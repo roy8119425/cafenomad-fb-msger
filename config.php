@@ -1,6 +1,9 @@
 <?php
 require_once('security.php');
 
+// Common
+$HOSTNAME = 'https://zhang.dscloud.me/cafenomad-fb-msger';
+
 // Facebook api
 $WEBHOOK_API_URL = 'https://graph.facebook.com/v2.6/me/messages?access_token=' . $FB_PAGE_ACCESS_TOKEN;
 $FB_GRAPH_API_URL = 'https://graph.facebook.com/v2.6/%s?fields=%s&access_token=' . $FB_PAGE_ACCESS_TOKEN;

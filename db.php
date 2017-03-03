@@ -101,12 +101,16 @@ function checkStoreExist($fbId) {
 }
 
 function addStore($fbData) {
+	global $HOSTNAME;
 	$conn = init() or die();
+
+	$picName = downloadFbPicture($fbData['id']);
+
 	$sqlcmd = sprintf("INSERT INTO Store (fb_id, name, address, picture, hours, lat, `long`, fb_rating, fb_rating_count) VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', %d)",
 		mysqli_real_escape_string($conn, $fbData['id']),
 		mysqli_real_escape_string($conn, $fbData['name']),
 		mysqli_real_escape_string($conn, $fbData['location']['street']),
-		mysqli_real_escape_string($conn, $fbData['picture']['data']['url']),
+		mysqli_real_escape_string($conn, $HOSTNAME . '/images/' . $picName),
 		mysqli_real_escape_string($conn, json_encode($fbData['hours'])),
 		mysqli_real_escape_string($conn, $fbData['location']['latitude']),
 		mysqli_real_escape_string($conn, $fbData['location']['longitude']),
@@ -118,9 +122,10 @@ function addStore($fbData) {
 	mysqli_close($conn);
 }
 
-function findStoreBy($cond) {
+function listStore($cond) {
 	$conn = init() or die();
 	$condArray = Array();
+	$sqlcmd = 'SELECT * FROM Store';
 
 	if (isset($cond['fb_id'])) {
 		$fbId = mysqli_real_escape_string($conn, $cond['fb_id']);
@@ -131,7 +136,9 @@ function findStoreBy($cond) {
 		array_push($condArray, sprintf("cafenomad_id = '%s'", $cafenomadId));
 	}
 
-	$sqlcmd = 'SELECT * FROM Store WHERE ' . join(' AND ', $condArray);
+	if (0 < count($condArray)) {
+		$sqlcmd .= (' WHERE ' . join(' AND ', $condArray));
+	}
 
 	$result = mysqli_query($conn, $sqlcmd) or trigger_error(mysqli_error($conn));
 	mysqli_close($conn);

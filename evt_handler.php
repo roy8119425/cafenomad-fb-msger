@@ -243,13 +243,16 @@ function sendDetails($recipientId, $payload) {
 			'type' => 'web_url',
 			'title' => '粉絲團評價',
 			'url' => sprintf($FB_REVIEW_URL, $pageId)
-		),
-		Array(
+		)
+	);
+
+	if (0 < strlen($cafenomadId)) {
+		array_push($buttons, Array(
 			'type' => 'web_url',
 			'title' => 'Cafenomad.tw 詳細資訊',
 			'url' => sprintf($CAFENOMAD_SHOP_INFO, $cafenomadId)
-		)
-	);
+		));
+	}
 
 	sendButtons($recipientId, $msg, $buttons);
 }

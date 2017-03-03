@@ -11,6 +11,7 @@ $dupIdArray = Array(
 );
 
 function update($cafe) {
+	global $HOSTNAME;
 	global $dupIdArray;
 
 	// Skip duplicate cafenomad id
@@ -20,7 +21,7 @@ function update($cafe) {
 	}
 
 	// Get fb page id from db first. If not exists, try to fetch from cafe url
-	$result = findStoreBy(Array('cafenomad_id' => $cafe['id']));
+	$result = listStore(Array('cafenomad_id' => $cafe['id']));
 	if (1 === mysqli_num_rows($result)) {
 		$record = mysqli_fetch_assoc($result);
 		$pageId = $record['fb_id'];
@@ -43,11 +44,12 @@ function update($cafe) {
 	}
 
 	// If the fb page id is already in db, do udate only
-	$result = findStoreBy(Array('fb_id' => $fbData['id']));
+	$result = listStore(Array('fb_id' => $fbData['id']));
 	if (1 === mysqli_num_rows($result)) {
 		$action = 'update';
 	}
 
+	$picName = downloadFbPicture($fbData['id']);
 	$lat = (isset($fbData['location']['latitude']) ? $fbData['location']['latitude'] : $cafe['latitude']);
 	$long = (isset($fbData['location']['longitude']) ? $fbData['location']['longitude'] : $cafe['longitude']);
 
@@ -59,7 +61,7 @@ function update($cafe) {
 			mysqli_real_escape_string($conn, $cafe['id']),
 			mysqli_real_escape_string($conn, $fbData['name']),
 			mysqli_real_escape_string($conn, $fbData['location']['street']),
-			mysqli_real_escape_string($conn, $fbData['picture']['data']['url']),
+			mysqli_real_escape_string($conn, $HOSTNAME . '/images/' . $picName),
 			mysqli_real_escape_string($conn, json_encode($fbData['hours'])),
 			mysqli_real_escape_string($conn, $lat),
 			mysqli_real_escape_string($conn, $long),
@@ -81,7 +83,7 @@ function update($cafe) {
 			mysqli_real_escape_string($conn, $cafe['id']),
 			mysqli_real_escape_string($conn, $fbData['name']),
 			mysqli_real_escape_string($conn, $fbData['location']['street']),
-			mysqli_real_escape_string($conn, $fbData['picture']['data']['url']),
+			mysqli_real_escape_string($conn, $HOSTNAME . '/images/' . $picName),
 			mysqli_real_escape_string($conn, json_encode($fbData['hours'])),
 			mysqli_real_escape_string($conn, $lat),
 			mysqli_real_escape_string($conn, $long),
@@ -118,6 +120,9 @@ function main($argc, $argv) {
 
 		foreach ($cafeData as $cafe) {
 			if ($cafe['id'] === $cafenomad_id) {
+				if (2 < $argc && 0 < strlen($argv[2])) {
+					$cafe['url'] = $argv[2];
+				}
 				update($cafe);
 				break;
 			} else {
